@@ -9,6 +9,8 @@ import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 @Service("UserService")
@@ -20,7 +22,15 @@ public class UserServiceImpl implements UserService {
     RabbitTemplate rabbitMessagingTemplate;
 
     @Autowired
+    KafkaTemplate<String, String> kafkaTemplate;
+    @Autowired
     Queue queue;
+
+    @Value("${spring.kafka.user.topic}")
+    String userTopicName;
+
+    @Value("${spring.kafka.user.topic.partitions}")
+    String userTopicPartitions;
 
     @Override
     public Response addUser(User user) {
@@ -30,6 +40,7 @@ public class UserServiceImpl implements UserService {
             user = databaseOperation.addUser(user);
             if (user.getId() > 0) {
                 rabbitMessagingTemplate.convertAndSend(queue.getActualName(), queue.getActualName(), user);
+                kafkaTemplate.send(userTopicName, userTopicPartitions.split(",")[0],new Gson().toJson(user));
                 response.setMessage("successful");
                 response.setData(user);
                 response.setStatus(true);
@@ -80,6 +91,7 @@ public class UserServiceImpl implements UserService {
             if (user.getId() > 0) {
                 Message message = new Message(new Gson().toJson(user).getBytes("UTF-8"));
                 rabbitMessagingTemplate.send(queue.getActualName(), queue.getActualName(), message);
+                kafkaTemplate.send(userTopicName,Integer.parseInt("2"),user.getId().toString(), new Gson().toJson(user));
                 response.setMessage("successful");
                 response.setData(user);
                 response.setStatus(true);
