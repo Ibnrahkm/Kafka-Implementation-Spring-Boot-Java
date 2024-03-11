@@ -40,7 +40,7 @@ public class UserServiceImpl implements UserService {
             user = databaseOperation.addUser(user);
             if (user.getId() > 0) {
                 rabbitMessagingTemplate.convertAndSend(queue.getActualName(), queue.getActualName(), user);
-                kafkaTemplate.send(userTopicName, userTopicPartitions.split(",")[0],new Gson().toJson(user));
+                kafkaTemplate.send(userTopicName, Integer.parseInt(userTopicPartitions.split(",")[0]), "abc", new Gson().toJson(user));
                 response.setMessage("successful");
                 response.setData(user);
                 response.setStatus(true);
@@ -91,7 +91,7 @@ public class UserServiceImpl implements UserService {
             if (user.getId() > 0) {
                 Message message = new Message(new Gson().toJson(user).getBytes("UTF-8"));
                 rabbitMessagingTemplate.send(queue.getActualName(), queue.getActualName(), message);
-                kafkaTemplate.send(userTopicName,Integer.parseInt("2"),user.getId().toString(), new Gson().toJson(user));
+                kafkaTemplate.send(userTopicName, Integer.parseInt("2"), user.getId().toString(), new Gson().toJson(user));
                 response.setMessage("successful");
                 response.setData(user);
                 response.setStatus(true);
